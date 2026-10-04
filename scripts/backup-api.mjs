@@ -76,7 +76,7 @@ async function upload(req, file) {
   if (!received) throw Error("Yedek dosyası bulunamadı.");
 }
 
-export function createBackupApi({ store, directory, host }) {
+export function createBackupApi({ store, directory, host, allowRequest }) {
   const sessions = new Map();
   let active = 0;
   async function dispose(token) {
@@ -144,10 +144,7 @@ export function createBackupApi({ store, directory, host }) {
   };
   async function handle(req, res) {
     if (!req.url?.startsWith("/api/backups/")) return false;
-    if (
-      req.headers.host !== host ||
-      (req.headers.origin && req.headers.origin !== `http://${host}`)
-    ) {
+    if (!allowRequest(req)) {
       json(res, 403, { error: "Yalnızca yerel uygulama erişebilir." });
       return true;
     }

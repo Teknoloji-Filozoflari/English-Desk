@@ -31,3 +31,5 @@ export function translateTexts(texts) {
   queue = operation.catch(() => {}); return operation;
 }
 process.on('exit', () => child?.kill());
+
+export function stopTranslation() { stop('Uygulama kapatılıyor.'); }

@@ -21,7 +21,8 @@
     "setup:translation": "node --use-system-ca scripts/setup-translation.mjs",
     "test:e2e": "playwright test",
     "test:e2e:build": "npm run build:web && npm run test:e2e",
-    "format:app": "prettier --write App.tsx \"src/notebook/**/*.{ts,tsx}\""
+    "format:app": "prettier --write App.tsx \"src/notebook/**/*.{ts,tsx}\"",
+    "test:docker": "node scripts/docker-smoke.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",

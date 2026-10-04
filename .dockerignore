@@ -1,0 +1,22 @@
+# Only application source and reusable resources enter the build context.
+**
+!package.json
+!package-lock.json
+!App.tsx
+!index.ts
+!app.json
+!tsconfig.json
+!src/
+!src/**
+!scripts/
+!scripts/**
+!resources/
+!resources/**
+!public/
+!public/favicon.png
+!Dockerfile
+scripts/import-conversations-65-93.mjs
+scripts/prepare-remaining-main.mjs
+scripts/__pycache__/
+resources/yds/*.json
+resources/WNdb-3.0.tar.gz

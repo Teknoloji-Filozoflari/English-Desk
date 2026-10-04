@@ -11,7 +11,7 @@ Hikâyelerini oku, kelimelerini biriktir, gramer notlarını düzenle ve sınavl
 ![Expo](https://img.shields.io/badge/Expo-SDK_57-000020?logo=expo)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
 
-[Kurulum](#kurulum) · [Özellikler](#özellikler) · [Yedekleme](#yedekleme-ve-geri-yükleme) · [Geliştirme](#geliştirme)
+[Docker](#docker-ile-kurulum) · [Kurulum](#kurulum) · [Özellikler](#özellikler) · [Yedekleme](#yedekleme-ve-geri-yükleme) · [Geliştirme](#geliştirme)
 
 </div>
 
@@ -41,6 +41,22 @@ Hikâyede seçtiğin cümleye gramer, kalıp, bağlaç veya diğer türde not ek
 Tense rehberinde 12 zaman, Modality bölümünde 16 konu başlangıçta hazırdır. Konuyu açınca kişisel not ekleme, düzenleme ve silme düğmeleri görünür. **Konu başlığını sil** başlığı kaldırır ve notlarını Genel konular’a taşır. Kaldırılan rehber başlıklarını yeniden ekleyebilirsin.
 
 Başlık silmek içerikleri silmez: gramer notları **Genel konular**, testler ve oturumlar **Genel testler** bölümüne taşınır. Bir notun veya testin kendi silme düğmesi ilgili kaydı kaldırır; işlem öncesinde onay gösterilir.
+
+## Docker ile kurulum
+
+Docker Desktop veya Docker Engine + Compose ile, bilgisayarına Node.js kurmadan çalıştırabilirsin:
+
+```sh
+git clone https://github.com/Teknoloji-Filozoflari/English-Desk.git
+cd English-Desk
+docker compose up -d --build --wait
+```
+
+**http://127.0.0.1:8081** adresini aç. Defter, sesler ve yedekler kalıcı volume’de tutulur; container yeniden oluşturulduğunda korunur. 8081 meşgulse `Docker.env.example` dosyasını `.env` olarak kopyalayıp portu değiştirebilirsin.
+
+Kaynak kodunu derlemeden kurmak için [hazır Docker imajını GitHub Releases’ten indir](https://github.com/Teknoloji-Filozoflari/English-Desk/releases/tag/docker-v0.1.0). Kaynak kodundan kurulum amd64/arm64; hazır indirme amd64 içindir. Türkçe çeviri Docker’da isteğe bağlı ayrı kurulur.
+
+[Docker kurulum, güncelleme ve yedekleme rehberi →](docs/DOCKER.md)
 
 ## Kurulum
 
@@ -143,6 +159,8 @@ Linux’ta tarayıcının sistem bağımlılıkları eksikse `npx playwright ins
 
 Playwright testleri masaüstü ve mobil Chromium görünümünde çalışır. Her test çalıştırması **8082** portunda geçici defter oluşturur; kişisel defteri ve seslerini kullanmaz. Gerçek dosya kayıt API’siyle yedekleme, geri yükleme, sınav devamlılığı, başlık yönetimi, not silme ve kayıt hataları doğrulanır.
 
+Docker doğrulaması için `docker build -t english-desk:ci .` ve `npm run test:docker -- --image english-desk:ci` kullan. Docker testi ayrı volume’lerle çalışır ve container yeniden oluşturulduğunda kayıtların korunduğunu kontrol eder.
+
 GitHub Actions, `main` güncellemelerinde ve pull request’lerde testleri, TypeScript kontrolünü, web derlemesini ve tarayıcı akışlarını çalıştırır.
 
 ### Proje yapısı
@@ -161,6 +179,8 @@ scripts/serve.mjs          Yerel web sunucusu ve API
 scripts/backup-*.mjs        ZIP aktarımı ve yedekleme API’si
 resources/                 Yerel sözlük ve seviye kaynakları
 tests/                     Veri ve tarayıcı testleri
+Dockerfile / compose.yaml  Kalıcı volume’lerle Docker kurulumu
+docs/DOCKER.md             Docker kullanım rehberi
 docs/images/               Örnek arayüz görüntüleri
 ```
 

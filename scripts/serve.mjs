@@ -1,3 +1,4 @@
+import { createRequestPolicy, serverConfig } from "./server-config.mjs";
 import http from "node:http";
 import { createReadStream } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
@@ -7,13 +8,15 @@ import { createHash } from "node:crypto";
 import { createStore } from "./notebook-store.mjs";
 import { lookupWord } from "./dictionary.mjs";
 import { createBackupApi } from "./backup-api.mjs";
-import { translationReady } from "./translator.mjs";
+import { translationReady, stopTranslation } from "./translator.mjs";
 export function createNotebookServer({
   directory = fileURLToPath(new URL("../data/", import.meta.url)),
   port = 8081,
+  origins = [`http://127.0.0.1:${port}`],
 } = {}) {
   let activeLookups = 0;
-  const host = `127.0.0.1:${port}`;
+  const host = new URL(origins[0]).host;
+  const allowRequest = createRequestPolicy(origins);
   const store = createStore(directory);
   const root = fileURLToPath(new URL("../dist/", import.meta.url));
   const instanceId = createHash("sha256")
@@ -31,15 +34,22 @@ export function createNotebookServer({
     ".ttf": "font/ttf",
     ".woff2": "font/woff2",
   };
-  const backups = createBackupApi({ store, directory, host });
+  const backups = createBackupApi({ store, directory, host, allowRequest });
   const server = http.createServer(async (req, res) => {
     try {
+      if (req.url === "/api/health") {
+        res.writeHead(["GET", "HEAD"].includes(req.method) ? 200 : 405, {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        });
+        res.end(
+          req.method === "HEAD" ? undefined : JSON.stringify({ status: "ok" }),
+        );
+        return;
+      }
       if (await backups.handle(req, res)) return;
       if (req.url?.startsWith("/api/story-audio/")) {
-        if (
-          req.headers.host !== host ||
-          (req.headers.origin && req.headers.origin !== `http://${host}`)
-        ) {
+        if (!allowRequest(req)) {
           res.writeHead(403);
           res.end();
           return;
@@ -118,10 +128,7 @@ export function createNotebookServer({
           });
           res.end(JSON.stringify(body));
         };
-        if (
-          req.headers.host !== host ||
-          (req.headers.origin && req.headers.origin !== `http://${host}`)
-        ) {
+        if (!allowRequest(req)) {
           send(403, { error: "Yalnızca yerel uygulama erişebilir." });
           return;
         }
@@ -171,11 +178,7 @@ export function createNotebookServer({
         return;
       }
       if (req.url === "/api/notebook") {
-        const origin = req.headers.origin;
-        if (
-          req.headers.host !== host ||
-          (origin && origin !== `http://${host}`)
-        ) {
+        if (!allowRequest(req)) {
           res.writeHead(403);
           res.end();
           return;
@@ -259,16 +262,29 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-  const server = createNotebookServer();
+  const config = serverConfig();
+  const server = createNotebookServer(config);
   server.on("error", (error) => {
     console.error(
       error.code === "EADDRINUSE"
-        ? "8081 portu kullanimda. Uygulama zaten aciksa ayni adresi kullanin."
+        ? `${config.port} portu kullanımda.`
         : error.message,
     );
     process.exitCode = 1;
   });
-  server.listen(8081, "127.0.0.1", () =>
-    console.log("English Desk: http://127.0.0.1:8081"),
+  let stopping = false;
+  for (const signal of ["SIGTERM", "SIGINT"])
+    process.once(signal, () => {
+      if (stopping) return;
+      stopping = true;
+      const timer = setTimeout(() => process.exit(1), 20_000);
+      timer.unref();
+      server.close(() => {
+        stopTranslation();
+        clearTimeout(timer);
+      });
+    });
+  server.listen(config.port, config.bind, () =>
+    console.log(`English Desk: ${config.origins[0]}`),
   );
 }
