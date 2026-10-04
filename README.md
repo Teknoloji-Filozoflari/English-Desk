@@ -207,3 +207,11 @@ npm run import:lingua -- --source "/dosya/yolu/Lingua/A1" --level A1 --dry-run
 Yerel dil kaynaklarının kendi lisansları korunur: [WordNet lisansı](resources/WORDNET-LICENSE.txt), [CEFR-J ve Octanove kaynak bilgileri](resources/cefr/README.md), [Words-CEFR-Dataset lisansı](resources/cefr/Words-CEFR-Dataset-LICENSE.txt).
 
 Bir sorun bildirirken hangi ekranda olduğunu, beklenen davranışı ve hatayı tekrar etme adımlarını [Issues](https://github.com/Teknoloji-Filozoflari/English-Desk/issues) üzerinden paylaşabilirsin. Kişisel yedeklerini veya defter içeriğini eklemene gerek yoktur.
+
+## Lisans
+
+Copyright (c) 2026 English Desk contributors.
+
+Projenin kaynak kodu [GNU GPL 3.0 veya sonraki sürümleri](LICENSE)
+(`GPL-3.0-or-later`) altında sunulur. Üçüncü taraf bağımlılıkların ve yerel dil
+kaynaklarının kendi lisansları geçerlidir; bkz. [Kaynaklar](#kaynaklar).
