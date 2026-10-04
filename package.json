@@ -1,0 +1,50 @@
+{
+  "name": "english-desk-native",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "start": "node --use-system-ca scripts/start.mjs",
+    "web": "expo start --web --localhost --port 8081",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.mjs",
+    "build:web": "expo export --platform web",
+    "import:lingua": "node scripts/import-lingua-level.mjs",
+    "preview": "node scripts/serve.mjs",
+    "prepare:pdf": "node scripts/prepare-pdf.mjs",
+    "prestart": "npm run prepare:pdf",
+    "preweb": "npm run prepare:pdf",
+    "prebuild:web": "npm run prepare:pdf",
+    "setup:translation": "node --use-system-ca scripts/setup-translation.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:build": "npm run build:web && npm run test:e2e",
+    "format:app": "prettier --write App.tsx \"src/notebook/**/*.{ts,tsx}\""
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.16",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "busboy": "^1.6.0",
+    "crc-32": "^1.2.2",
+    "expo": "~57.0.24",
+    "expo-document-picker": "~57.0.2",
+    "expo-file-system": "~57.0.7",
+    "expo-sharing": "~57.0.21",
+    "pdfjs-dist": "6.3.289",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-web": "^0.21.2",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/react": "~19.2.2",
+    "prettier": "^3.9.9",
+    "typescript": "~6.0.3"
+  }
+}

@@ -1,0 +1,29 @@
+﻿# Klasörü başka bilgisayarda açma
+
+1. English Notebook proje klasörünün tamamını yazma iznin olan bir konuma kopyala. Özellikle `data/notebook.json`
+   kişisel hikâye, kelime ve notlarını; `data/story-audio/` seslerini içerir.
+   GitHub'dan yalnız kodu çekmek bu kişisel dosyaları getirmez.
+2. Windows'ta `Baslat.cmd` dosyasına çift tıkla. Linux x64'te proje klasöründe
+   `sh Baslat.sh` çalıştır. Terminal penceresini açık tut.
+3. Başlatıcı uygulamayı hazırlayıp varsayılan tarayıcıda
+   http://127.0.0.1:8081/ adresini açar. Otomatik açılmazsa adresi kendin aç.
+
+İlk açılışta internet gerekir. Node.js 24.21.0 yüklü değilse resmî Node.js
+arşivinden proje içindeki `.runtime/node/` klasörüne indirilir ve SHA-256 ile
+doğrulanır. Ardından npm paketleri, çevrimdışı Türkçe çeviri ortamı ve web
+dosyaları hazırlanır. Bu birkaç yüz MB indirebilir. Yönetici/sudo gerekmez.
+Sonraki açılışlar hazır dosyaları kullanır; sözlük API'leri dışındaki temel
+uygulama yerel olarak çalışır.
+
+Windows ve Linux arasında `node_modules/`, `.venv/`, `.runtime/` klasörlerini
+taşıman gerekmez; taşırsan da başlatıcı gerekli platform kurulumunu yeniden
+yapar. Yer kazanmak için kopyalamadan önce bunları ve `dist/` klasörünü
+atlayabilirsin. `data/` klasörünü atlama. Kopyalamayı uygulama kapalıyken yap.
+
+Linux başlatıcısı x64/glibc içindir; `curl`, `tar` ve `sha256sum` gerekir.
+Başlatıcı Linux üzerinde gerçek cihazda henüz doğrulanmadı. Çeviri kurulumu
+başarısız olsa da uygulama açılır; daha sonra yeniden denenir.
+
+8081 portunda başka bir English Notebook kopyası çalışıyorsa başlatıcı onu
+senin klasörün sanmaz; önce o sunucuyu kapatmanı ister. İşin bitince
+terminalde Ctrl+C ile yerel sunucuyu durdur.

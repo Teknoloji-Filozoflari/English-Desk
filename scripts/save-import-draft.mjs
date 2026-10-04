@@ -1,0 +1,5 @@
+﻿import{readFile,copyFile,constants}from'node:fs/promises';
+const jobs=JSON.parse(await readFile(process.argv[2],'utf8'));const url='http://127.0.0.1:8081/api/notebook';const saved=await(await fetch(url)).json();const added=jobs.filter(j=>!saved.data.stories.some(s=>s.id===j.story.id||s.title.toLowerCase()===j.story.title.toLowerCase()));
+for(const j of added){await copyFile(j.audio,`data/story-audio/${j.story.id}.mp3`,constants.COPYFILE_EXCL);}
+const r=await fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({revision:saved.revision,data:{...saved.data,stories:[...saved.data.stories,...added.map(j=>j.story)]}})});if(!r.ok)throw Error(await r.text());
+const check=await(await fetch(url)).json();for(const j of added){if(check.data.stories.find(s=>s.id===j.story.id)?.text!==j.story.text)throw Error('Save');const a=await fetch('http://127.0.0.1:8081/api/story-audio/'+j.story.id,{headers:{Range:'bytes=0-127'}});if(a.status!==206||(await a.arrayBuffer()).byteLength!==128)throw Error('Audio');}console.log('Added',added.length,'Total',check.data.stories.length);

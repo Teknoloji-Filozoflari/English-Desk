@@ -1,0 +1,34 @@
+node_modules/
+.expo/
+dist/
+native-bundles/
+public/pdf/
+data/backups/
+data/notebook.json
+data/*.tmp
+.env*
+*.log
+*.tsbuildinfo
+android/
+ios/
+.venv/
+.runtime/
+data/dictionary-cache/
+data/story-audio/*
+__pycache__/
+playwright-report/
+test-results/
+
+# Kişisel çalışma dosyaları ve aktarım günlükleri
+data/*
+!data/README.md
+AKTARIM-DURUMU.md
+DOGRULAMA.md
+modality.png
+Yeni klasör/
+scripts/import-conversations-65-93.mjs
+scripts/prepare-remaining-main.mjs
+# Yerel PDF koleksiyonundan çıkarılmış içerikler
+resources/yds/*.json
+# WordNet kaynak arşivi; çalışma sözlüğü ve lisansı depoda tutulur
+resources/WNdb-3.0.tar.gz
