@@ -12,9 +12,14 @@ COPY public/ ./public/
 RUN npm run build:web
 
 FROM node:24-bookworm-slim AS runtime
+ARG VERSION=0.2.0
+ARG REVISION=unknown
 LABEL org.opencontainers.image.title="English Desk" \
       org.opencontainers.image.description="Personal English study notebook" \
-      org.opencontainers.image.source="https://github.com/Teknoloji-Filozoflari/English-Desk"
+      org.opencontainers.image.source="https://github.com/Teknoloji-Filozoflari/English-Desk" \
+      org.opencontainers.image.version=$VERSION \
+      org.opencontainers.image.revision=$REVISION \
+      org.opencontainers.image.licenses="GPL-3.0-or-later"
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libgomp1 \
     && rm -rf /var/lib/apt/lists/*
@@ -23,6 +28,7 @@ ENV NODE_ENV=production \
     ENGLISH_DESK_LISTEN_PORT=8081 \
     ENGLISH_DESK_PUBLIC_ORIGINS=http://127.0.0.1:8081,http://localhost:8081
 COPY package.json package-lock.json ./
+COPY LICENSE ./
 RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 COPY --from=build /app/dist/ ./dist/
 COPY --from=build /app/scripts/ ./scripts/

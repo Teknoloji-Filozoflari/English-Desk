@@ -15,6 +15,7 @@
 !public/
 !public/favicon.png
 !Dockerfile
+!LICENSE
 scripts/import-conversations-65-93.mjs
 scripts/prepare-remaining-main.mjs
 scripts/__pycache__/

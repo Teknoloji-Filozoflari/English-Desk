@@ -1,6 +1,6 @@
 {
   "name": "english-desk-native",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "license": "GPL-3.0-or-later",
   "type": "module",
@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --test tests/*.test.mjs",
     "build:web": "expo export --platform web",
+    "check:native": "expo export --platform android --platform ios --output-dir native-bundles --no-bytecode",
     "import:lingua": "node scripts/import-lingua-level.mjs",
     "preview": "node scripts/serve.mjs",
     "prepare:pdf": "node scripts/prepare-pdf.mjs",

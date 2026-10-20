@@ -1,4 +1,4 @@
-import type { Notebook } from './model';
+import type { Notebook } from "./model.ts";
 
 export const initialNotebook: Notebook = {
   version: 1,

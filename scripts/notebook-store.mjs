@@ -1,8 +1,42 @@
-import { mkdir, readFile, writeFile, rename, copyFile } from "node:fs/promises";
+import {
+  mkdir,
+  readFile,
+  writeFile,
+  rename,
+  copyFile,
+  rm,
+} from "node:fs/promises";
+import { setTimeout as delay } from "node:timers/promises";
 import { join } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { validateNotebook } from "../src/model.ts";
-export function createStore(directory) {
+// On Windows a scanner or an open reader can briefly block atomic replacement.
+// Retry the same rename; never delete/truncate the destination to get past a lock.
+export async function replaceNotebookFile(
+  source,
+  destination,
+  { renameFile = rename, platform = process.platform, wait = delay } = {},
+) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await renameFile(source, destination);
+      return;
+    } catch (error) {
+      if (
+        platform !== "win32" ||
+        !["EPERM", "EACCES", "EBUSY"].includes(error.code) ||
+        attempt >= 5
+      )
+        throw error;
+      await wait(20 * 2 ** attempt);
+    }
+  }
+}
+
+export function createStore(
+  directory,
+  { replaceFile = replaceNotebookFile } = {},
+) {
   const file = join(directory, "notebook.json");
   let queue = Promise.resolve();
   const revision = (text) => createHash("sha256").update(text).digest("hex");
@@ -39,8 +73,14 @@ export function createStore(directory) {
       }
       const raw = JSON.stringify(checked, null, 2) + "\n";
       const temporary = join(directory, `.notebook-${randomUUID()}.tmp`);
-      await writeFile(temporary, raw, { flag: "wx", flush: true });
-      await rename(temporary, file);
+      try {
+        await writeFile(temporary, raw, { flag: "wx", flush: true });
+        await replaceFile(temporary, file);
+      } catch (error) {
+        // Keep the original error and previous notebook even if cleanup fails.
+        await rm(temporary, { force: true }).catch(() => {});
+        throw error;
+      }
       return { data: checked, revision: revision(raw) };
     });
     queue = operation.catch(() => {});

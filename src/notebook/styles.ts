@@ -7,9 +7,16 @@ const serif = Platform.select({
   default: "Georgia, serif",
 });
 export const styles = StyleSheet.create({
-  mobileSubnav: { flexDirection: "row", gap: 8, marginTop: 8 },
+  mobileSubnav: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
   mobileSubnavItem: {
     flex: 1,
+    flexBasis: 100,
+    minWidth: 100,
     minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
@@ -87,8 +94,13 @@ export const styles = StyleSheet.create({
     marginTop: 4,
   },
   navigation: { gap: 8, marginTop: 14 },
-  mobileNavigation: { flexDirection: "row", marginTop: 18, gap: 4 },
-  mobileNavGroup: { flex: 1 },
+  mobileNavigation: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 18,
+    gap: 4,
+  },
+  mobileNavGroup: { flexGrow: 1, flexBasis: 100, minWidth: 100 },
   navItem: {
     flexDirection: "row",
     paddingVertical: 16,
@@ -108,7 +120,7 @@ export const styles = StyleSheet.create({
   navChevron: { marginLeft: "auto", fontSize: 18, color: colors.muted },
   subNavigation: { paddingLeft: 17, paddingTop: 5, gap: 3 },
   subNavItem: {
-    minHeight: 42,
+    minHeight: 44,
     paddingHorizontal: 12,
     justifyContent: "center",
     borderRadius: 8,
@@ -131,7 +143,7 @@ export const styles = StyleSheet.create({
     fontFamily: serif,
     marginBottom: 28,
   },
-  textButton: { minHeight: 40, justifyContent: "center" },
+  textButton: { minHeight: 44, justifyContent: "center" },
   textButtonLabel: { color: colors.ink, fontSize: 14 },
   storageHint: {
     fontSize: 11,
@@ -139,7 +151,7 @@ export const styles = StyleSheet.create({
     color: "#A7AFBA",
     marginTop: 20,
   },
-  main: { flex: 1 },
+  main: { flex: 1, minWidth: 0, minHeight: 0 },
   mainContent: {
     padding: 30,
     width: "100%",
@@ -168,6 +180,9 @@ export const styles = StyleSheet.create({
   muted: { fontSize: 16, lineHeight: 25, color: colors.muted },
   meta: { fontSize: 14, lineHeight: 23, color: colors.muted },
   button: {
+    maxWidth: "100%",
+    minWidth: 0,
+    flexShrink: 1,
     backgroundColor: theme.accent,
     borderRadius: 8,
     paddingVertical: 13,
@@ -178,7 +193,13 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.accent,
   },
-  buttonText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  buttonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    flexShrink: 1,
+  },
   secondaryButton: { backgroundColor: "#FFFEFA", borderColor: colors.line },
   dangerButton: { backgroundColor: "#fff8f8", borderColor: "#f0d4d8" },
   smallButton: { paddingHorizontal: 13, paddingVertical: 10 },
@@ -375,6 +396,7 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   closeButton: {
+    flexShrink: 0,
     width: 44,
     height: 44,
     alignItems: "center",
@@ -384,6 +406,8 @@ export const styles = StyleSheet.create({
   modalBody: { paddingHorizontal: 24, paddingBottom: 24 },
   modalFooter: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    flexShrink: 0,
     justifyContent: "flex-end",
     gap: 10,
     padding: 20,

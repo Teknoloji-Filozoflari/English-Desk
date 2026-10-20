@@ -13,6 +13,11 @@ import { isTenseName } from "../../tenses.ts";
 import { addRelatedCards, normalizeWord } from "../../word-enrichment.ts";
 import { isVerbType, wordTypeKey } from "../../word-types.ts";
 import type { Editor } from "../types.ts";
+import {
+  attachStoryContext,
+  validateWordTags,
+  wordContexts,
+} from "../../word-context.ts";
 
 export function applyEditor(
   current: Notebook,
@@ -64,7 +69,7 @@ export function applyEditor(
     );
   }
   const tags =
-    editor.kind === "storyNotes"
+    editor.kind === "storyNotes" || editor.kind === "words"
       ? [
           ...new Set(
             (values.tags ?? "")
@@ -119,8 +124,12 @@ export function applyEditor(
       ? current.stories.map((s) => (s.id === editor.id ? record : s))
       : [...current.stories, record];
   } else if (editor.kind === "words") {
-    const record: Word = {
-      ...current.words.find((w) => w.id === editor.id),
+    const old = current.words.find((w) => w.id === editor.id);
+    let record: Word = {
+      ...old,
+      ...(old && wordContexts(old, current.stories).length
+        ? { contexts: wordContexts(old, current.stories) }
+        : {}),
       id: recordId,
       definition: values.definition ?? "",
       levelSource: values.levelSource ?? "",
@@ -139,6 +148,7 @@ export function applyEditor(
         example: sense.example.trim(),
         translation: sense.translation.trim(),
       })),
+      ...(values.tags !== undefined ? { tags: validateWordTags(tags) } : {}),
       verbForms: isVerbType(values.type)
         ? {
             base: values.verbBase || values.word,
@@ -152,6 +162,23 @@ export function applyEditor(
           }
         : undefined,
     };
+    if (values.sourceStoryId) {
+      const source = current.stories.find(
+        (story) => story.id === values.sourceStoryId,
+      );
+      if (!source || !values.sourceSentence || !values.sourceSelection)
+        throw Error("Kaynak hikâye veya cümle bulunamadı.");
+      if (!old) record.contexts = [];
+      record = attachStoryContext(
+        record,
+        source,
+        values.sourceSentence,
+        values.sourceSelection,
+        values.sourceMeaning || values.meaning,
+        makeId,
+        current.stories,
+      );
+    }
     next.words = editor.id
       ? current.words.map((w) => (w.id === editor.id ? record : w))
       : [...current.words, record];
@@ -177,6 +204,13 @@ export function applyEditor(
       : [...(current.storyNotes ?? []), record];
   } else {
     const record: Grammar = {
+      ...(current.grammar.find((g) => g.id === editor.id)?.exercises !==
+      undefined
+        ? {
+            exercises: current.grammar.find((g) => g.id === editor.id)!
+              .exercises,
+          }
+        : {}),
       id: recordId,
       title: values.title,
       body: values.body,

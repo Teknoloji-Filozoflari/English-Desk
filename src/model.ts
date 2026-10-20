@@ -6,6 +6,26 @@ import { validateTopics, type Topic } from "./topics.ts";
 import { isTenseName, type TenseName } from "./tenses.ts";
 import { isModalityTopic, type ModalityTopic } from "./modality.ts";
 import { validateExams, type ExamData } from "./exams.ts";
+import { validateWordHistory, type WordAnswer } from "./word-history.ts";
+import {
+  validateLearning,
+  validateGrammarExercises,
+  type LearningData,
+  type GrammarExercise,
+} from "./learning.ts";
+import { validateMemorization, type Memorization } from "./memorization.ts";
+import {
+  validateWordContexts,
+  validateWordTags,
+  wordContexts,
+  type WordContext,
+} from "./word-context.ts";
+import {
+  validateStudyActivity,
+  validateStudyPreferences,
+  type StudyActivity,
+  type StudyPreferences,
+} from "./daily-study.ts";
 
 export const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 export type Level = (typeof LEVELS)[number];
@@ -75,6 +95,11 @@ export type Word = {
   examples?: { example: string; translation: string; source: string }[];
   verbForms?: VerbForms;
   review?: { due: number; interval: number; repetitions: number };
+  memorization?: Memorization;
+  studyActivity?: StudyActivity;
+  contexts?: WordContext[];
+  answerHistory?: WordAnswer[];
+  tags?: string[];
 };
 export function wordLevel(word: Word, stories: Story[]): string {
   if (word.level && isLevel(word.level)) return word.level;
@@ -103,6 +128,7 @@ export type Grammar = {
   tense?: TenseName;
   modality?: ModalityTopic;
   topicId?: string;
+  exercises?: GrammarExercise[];
 };
 export const STORY_NOTE_CATEGORIES = [
   "grammar",
@@ -130,6 +156,8 @@ export type Notebook = {
   storyNotes?: StoryNote[];
   audioTimings?: Record<string, (number | null)[]>;
   exams?: ExamData;
+  studyPreferences?: StudyPreferences;
+  learning?: LearningData;
 };
 export type Token = {
   text: string;
@@ -184,6 +212,13 @@ export function removeStory(data: Notebook, id: string): Notebook {
     stories: data.stories.filter((s) => s.id !== id),
     words: data.words.map((w) => ({
       ...w,
+      ...(wordContexts(w, data.stories).length
+        ? {
+            contexts: wordContexts(w, data.stories).map((context) =>
+              context.storyId === id ? { ...context, storyId: "" } : context,
+            ),
+          }
+        : {}),
       ...(w.storyId === id
         ? { level: wordLevel(w, data.stories), storyId: "" }
         : {}),
@@ -481,6 +516,12 @@ export function validateNotebook(value: unknown): Notebook {
   // Rebuild known fields only: import never carries arbitrary object properties into app state.
   return {
     version: 1,
+    ...(parsed.learning !== undefined
+      ? { learning: validateLearning(parsed.learning) }
+      : {}),
+    ...(parsed.studyPreferences !== undefined
+      ? { studyPreferences: validateStudyPreferences(parsed.studyPreferences) }
+      : {}),
     ...(parsed.hiddenGrammarTopics !== undefined
       ? {
           hiddenGrammarTopics: validateHiddenGrammarTopics(
@@ -512,6 +553,28 @@ export function validateNotebook(value: unknown): Notebook {
       example: w.example,
       translation: w.translation,
       storyId: w.storyId,
+      ...(w.contexts !== undefined
+        ? {
+            contexts: validateWordContexts(w.contexts).map((context) => {
+              if (
+                context.storyId &&
+                !parsed.stories.some((story) => story.id === context.storyId)
+              )
+                throw Error("Kelime bağlamının hikâyesi bulunamadı.");
+              return context;
+            }),
+          }
+        : {}),
+      ...(w.tags !== undefined ? { tags: validateWordTags(w.tags) } : {}),
+      ...(w.answerHistory !== undefined
+        ? { answerHistory: validateWordHistory(w.answerHistory) }
+        : {}),
+      ...(w.studyActivity !== undefined
+        ? { studyActivity: validateStudyActivity(w.studyActivity) }
+        : {}),
+      ...(w.memorization !== undefined
+        ? { memorization: validateMemorization(w.memorization) }
+        : {}),
       ...(w.storyIds ? { storyIds: [...new Set(w.storyIds)] } : {}),
       ...(w.level !== undefined ? { level: w.level } : {}),
       ...Object.fromEntries(
@@ -575,6 +638,9 @@ export function validateNotebook(value: unknown): Notebook {
       id: g.id,
       title: g.title,
       body: g.body,
+      ...(g.exercises !== undefined
+        ? { exercises: validateGrammarExercises(g.exercises) }
+        : {}),
       ...(g.topicId ? { topicId: g.topicId } : {}),
       ...(g.tense ? { tense: g.tense } : {}),
       ...(g.modality ? { modality: g.modality } : {}),

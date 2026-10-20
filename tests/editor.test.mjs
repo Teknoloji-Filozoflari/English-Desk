@@ -34,6 +34,7 @@ const fixture = () => ({
         { example: "Keep quiet.", translation: "Sessiz ol.", source: "PDF" },
       ],
       review: { due: 1800000000000, interval: 5, repetitions: 2 },
+      memorization: { addedOn: "2026-10-01", learnedOn: "2026-10-02", reviews: ["2026-10-03"] },
     },
   ],
   grammar: [],
@@ -66,6 +67,7 @@ test("editing a word preserves review history, story links and imported examples
   );
   assert.equal(data.words[0].meaning, "sakin");
   assert.deepEqual(data.words[0].review, original.words[0].review);
+  assert.deepEqual(data.words[0].memorization, original.words[0].memorization);
   assert.deepEqual(data.words[0].storyIds, original.words[0].storyIds);
   assert.deepEqual(data.words[0].examples, original.words[0].examples);
   assert.equal(data.words[0].sources, "Original source");

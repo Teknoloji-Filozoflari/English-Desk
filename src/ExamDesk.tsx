@@ -1,4 +1,10 @@
 import { TopicManager } from "./notebook/components/TopicManager";
+import type { Notebook } from "./model";
+import type { Persist } from "./notebook/types";
+import {
+  ExamLearningScreen,
+  WeeklyPracticeScreen,
+} from "./notebook/screens/ExamLearningScreen";
 import { DEFAULT_EXAM_TOPICS, type Topic } from "./topics";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -94,19 +100,25 @@ const clock = (seconds: number) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 
 export function ExamDesk({
+  notebook,
+  persist,
   data = emptyExams,
   disabled,
   onSave,
   topicId,
   onSelectTopic,
   onSaveTopics,
+  initialTab = "tests",
 }: {
+  notebook: Notebook;
+  persist: Persist;
   data?: ExamData;
   disabled: boolean;
   topicId: string;
   onSelectTopic: (id: string) => void;
   onSaveTopics: (topics: Topic[], deleted?: string) => Promise<boolean>;
   onSave: (update: (current: ExamData) => ExamData) => Promise<boolean>;
+  initialTab?: "tests" | "wrong";
 }) {
   const topics = data.topics ?? DEFAULT_EXAM_TOPICS;
   const topic = topics.find((row) => row.id === topicId);
@@ -116,14 +128,16 @@ export function ExamDesk({
       : "") === topicId;
   const exam: ExamKind = topicId === "ielts" ? "IELTS" : "YDS";
   const collection: ExamCollection = topicId === "osym" ? "osym" : "other";
-  const [tab, setTab] = useState<"tests" | "wrong" | "history">("tests");
+  const [tab, setTab] = useState<"tests" | "wrong" | "history" | "weekly">(
+    initialTab,
+  );
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   useEffect(() => {
     setActiveId(null);
     setQuery("");
-    setTab("tests");
-  }, [topicId]);
+    setTab(initialTab);
+  }, [topicId, initialTab]);
   const [draft, setDraft] = useState<ExamTest | null>(null);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -187,21 +201,22 @@ export function ExamDesk({
           save((current) => ({
             ...current,
             attempts: current.attempts.map((row) =>
-              row.id === active.id ? { ...row, ...patch } : row,
+              row.id === active.id
+                ? {
+                    ...row,
+                    ...patch,
+                    ...(patch.finished === true && !row.finished
+                      ? { completedAt: Date.now() }
+                      : {}),
+                  }
+                : row,
             ),
           }))
         }
         onExit={() => setActiveId(null)}
         onRepeat={() => {
-          const wrong = active.test.questions.filter(
-            (q) => !correct(q, active.answers[q.id]),
-          );
-          if (wrong.length)
-            void start(
-              { ...active.test, title: `${active.test.title} · Tekrar` },
-              "study",
-              wrong,
-            );
+          setActiveId(null);
+          setTab("wrong");
         }}
       />
     );
@@ -232,6 +247,7 @@ export function ExamDesk({
           [
             ["tests", "Testler"],
             ["wrong", "Yanlışlarım"],
+            ["weekly", "Haftalık karma"],
             ["history", "Geçmiş sonuçlar"],
           ] as const
         ).map(([key, label]) => (
@@ -443,40 +459,21 @@ export function ExamDesk({
         </>
       )}
       {tab === "wrong" && (
-        <>
-          {!history.some((row) => score(row).right < score(row).total) && (
-            <Text style={s.muted}>
-              Tamamladığın testlerdeki yanlış ve boş sorular burada toplanır.
-            </Text>
-          )}
-          {history
-            .filter((row) => score(row).right < score(row).total)
-            .map((row) => (
-              <View key={row.id} style={s.card}>
-                <Text style={s.title}>{row.test.title}</Text>
-                <Text style={s.muted}>
-                  {score(row).wrong + score(row).blank} soru tekrar bekliyor.
-                </Text>
-                <View style={s.row}>
-                  <Action label="İncele" onPress={() => setActiveId(row.id)} />
-                  <Action
-                    label="Yanlışları tekrar et"
-                    disabled={lock}
-                    primary
-                    onPress={() => {
-                      void start(
-                        { ...row.test, title: `${row.test.title} · Tekrar` },
-                        "study",
-                        row.test.questions.filter(
-                          (q) => !correct(q, row.answers[q.id]),
-                        ),
-                      );
-                    }}
-                  />
-                </View>
-              </View>
-            ))}
-        </>
+        <ExamLearningScreen
+          key={topicId}
+          data={notebook}
+          persist={persist}
+          disabled={lock}
+          topicId={topicId}
+          onInspect={setActiveId}
+        />
+      )}
+      {tab === "weekly" && (
+        <WeeklyPracticeScreen
+          data={notebook}
+          persist={persist}
+          disabled={lock}
+        />
       )}
       <Modal
         visible={!!draft}
@@ -1169,6 +1166,8 @@ const s = StyleSheet.create({
   },
   tag: { color: t.accent, fontSize: 12, fontWeight: "700" },
   button: {
+    maxWidth: "100%",
+    flexShrink: 1,
     minHeight: 44,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -1180,7 +1179,13 @@ const s = StyleSheet.create({
     backgroundColor: t.surface,
   },
   primary: { backgroundColor: t.accent, borderColor: t.accent },
-  buttonText: { color: t.ink, fontSize: 14, fontWeight: "600" },
+  buttonText: {
+    color: t.ink,
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    flexShrink: 1,
+  },
   field: { gap: 8 },
   label: { color: t.ink, fontSize: 13, fontWeight: "600" },
   input: {

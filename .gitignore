@@ -32,3 +32,4 @@ scripts/prepare-remaining-main.mjs
 resources/yds/*.json
 # WordNet kaynak arşivi; çalışma sözlüğü ve lisansı depoda tutulur
 resources/WNdb-3.0.tar.gz
+.tools/

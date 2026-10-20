@@ -1,5 +1,5 @@
 import type { Notebook, StoryNoteCategory } from "../model";
-export type Page = "stories" | "words" | "grammar" | "exams";
+export type Page = "today" | "stories" | "words" | "grammar" | "exams";
 export type Editor = {
   kind: "stories" | "words" | "grammar" | "storyNotes";
   id?: string;

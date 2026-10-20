@@ -2,14 +2,10 @@
   "expo": {
     "name": "English Desk",
     "slug": "english-desk",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "orientation": "default",
     "userInterfaceStyle": "light",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
+    "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true
     },
@@ -19,8 +15,6 @@
       "lang": "tr",
       "favicon": "./public/favicon.png"
     },
-    "plugins": [
-      "expo-sharing"
-    ]
+    "plugins": ["expo-sharing"]
   }
 }

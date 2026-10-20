@@ -1,6 +1,6 @@
 import { removeGuideTopic, restoreGuideTopic } from "../grammar-guide";
 import { DEFAULT_EXAM_TOPICS, type Topic } from "../topics";
-import { removeExamTopic } from "../exams";
+import { examTopicId as resolveExamTopicId, removeExamTopic } from "../exams";
 import { BackupModal } from "./components/BackupModal";
 import { useBackup } from "./hooks/useBackup";
 import { useEffect, useRef, useState } from "react";
@@ -21,9 +21,11 @@ import { emptyExams } from "../exams";
 import type { ModalityTopic } from "../modality";
 import { sentenceAt, Story, Token, Word } from "../model";
 import { reflowPdfText } from "../reading-text";
+import { normalizeWord } from "../word-enrichment";
 import type { TenseName } from "../tenses";
 import { EditorModal } from "./components/EditorModal";
 import { Navigation } from "./components/Navigation";
+import { FocusStyles } from "./components/FocusStyles";
 import { WordDetailsModal } from "./components/WordDetailsModal";
 import { Button } from "./components/ui";
 import { useNotebook } from "./hooks/useNotebook";
@@ -36,6 +38,7 @@ import { GrammarScreen } from "./screens/GrammarScreen";
 import { ReaderScreen } from "./screens/ReaderScreen";
 import { StoriesScreen } from "./screens/StoriesScreen";
 import { WordsScreen } from "./screens/WordsScreen";
+import { DailyStudyScreen } from "./screens/DailyStudyScreen";
 import { colors, styles } from "./styles";
 import { type Page } from "./types";
 export function NotebookApp() {
@@ -54,7 +57,8 @@ export function NotebookApp() {
     enrichCards,
     refreshTurkishMeaning,
   } = useWordEnrichment(dataRef, persist, storageError, setNotice);
-  const [page, setPage] = useState<Page>("stories");
+  const [page, setPage] = useState<Page>("today");
+  const [examTab, setExamTab] = useState<"tests" | "wrong">("tests");
   const [storyId, setStoryId] = useState<string | null>(null);
   const [storyBrowser, setStoryBrowser] =
     useState<BrowserState>(initialBrowserState);
@@ -92,6 +96,7 @@ export function NotebookApp() {
     () => setStoryId(null),
   );
   const [phraseMode, setPhraseMode] = useState(false);
+  const [phraseToWord, setPhraseToWord] = useState(false);
   const [phraseStart, setPhraseStart] = useState<Token | null>(null);
   const [sentenceMode, setSentenceMode] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -120,7 +125,10 @@ export function NotebookApp() {
       setGrammarTopicId("");
       setGrammarExpanded(true);
     }
-    if (next === "exams") setExamsExpanded(true);
+    if (next === "exams") {
+      setExamsExpanded(true);
+      setExamTab("tests");
+    }
     setStoryId(null);
     setPhraseMode(false);
     setPhraseStart(null);
@@ -214,6 +222,36 @@ export function NotebookApp() {
       ? reflowPdfText(story.text)
       : story.text
     : "";
+  function openStoryWord(selection: string, start: number, end: number) {
+    if (!story) return;
+    if (selection.length > 500) {
+      setNotice("Daha kısa bir ifade seç; en fazla 500 karakter.");
+      return;
+    }
+    const candidates = data.words.filter(
+      (word) => normalizeWord(word.word) === normalizeWord(selection),
+    );
+    const existing =
+      candidates.find(
+        (word) =>
+          word.storyId === story.id || word.storyIds?.includes(story.id),
+      ) ?? candidates[0];
+    const sentence = sentenceAt(readingText, start, end);
+    openEditor("words", existing, {
+      ...(!existing
+        ? {
+            word: selection,
+            level: "",
+            storyId: story.id,
+            example: sentence,
+            type: /\s/.test(selection) ? "phrase" : "",
+          }
+        : {}),
+      sourceStoryId: story.id,
+      sourceSentence: sentence,
+      sourceSelection: selection,
+    });
+  }
   function pickToken(token: Token) {
     if (!story) return;
     let start = token.start,
@@ -242,6 +280,10 @@ export function NotebookApp() {
       setPhraseStart(null);
       setPhraseMode(false);
       const selection = readingText.slice(start, end).trim();
+      if (phraseToWord) {
+        openStoryWord(selection, start, end);
+        return;
+      }
       if (selection.length > 5000) {
         setNotice("Daha kısa bir ifade seç.");
         return;
@@ -258,23 +300,7 @@ export function NotebookApp() {
       setNotice("Daha kısa bir ifade seç; en fazla 500 karakter.");
       return;
     }
-    const existing = data.words.find(
-      (w) =>
-        (w.storyId === story.id || w.storyIds?.includes(story.id)) &&
-        w.word.toLowerCase() === word.toLowerCase(),
-    );
-    openEditor(
-      "words",
-      existing,
-      existing
-        ? {}
-        : {
-            word,
-            level: "",
-            storyId: story.id,
-            example: sentenceAt(readingText, start, end),
-          },
-    );
+    openStoryWord(word, start, end);
   }
   function openChapter(row: Story) {
     setStoryId(row.id);
@@ -309,6 +335,7 @@ export function NotebookApp() {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="dark-content" />
+      <FocusStyles />
       <View style={[styles.shell, !desktop && { flexDirection: "column" }]}>
         <Navigation
           desktop={desktop}
@@ -361,13 +388,15 @@ export function NotebookApp() {
           <View style={styles.topbar}>
             <Text style={styles.topbarText}>
               DEFTERİM /{" "}
-              {page === "stories"
-                ? "OKUMA"
-                : page === "words"
-                  ? "KELİMELER"
-                  : page === "exams"
-                    ? "SINAVLAR"
-                    : "GRAMER"}
+              {page === "today"
+                ? "BUGÜN"
+                : page === "stories"
+                  ? "OKUMA"
+                  : page === "words"
+                    ? "KELİMELER"
+                    : page === "exams"
+                      ? "SINAVLAR"
+                      : "GRAMER"}
             </Text>
             <Text style={styles.topbarStatus}>● Kişisel kütüphane</Text>
           </View>
@@ -394,6 +423,60 @@ export function NotebookApp() {
               </View>
             </View>
           )}
+          {page === "today" && (
+            <DailyStudyScreen
+              onWord={(word) => setSelectedWordId(word.id)}
+              data={data}
+              desktop={desktop}
+              disabled={busy || !!storageError}
+              storageError={storageError}
+              persist={persist}
+              onWords={() => {
+                go("words");
+                wordReview.setWordSection("cards");
+              }}
+              onNewWords={() => {
+                go("words");
+                wordReview.setMemorizationFilter("learning");
+                wordReview.setWordSection("memorization");
+              }}
+              onMemory={() => {
+                go("words");
+                wordReview.setMemorizationFilter("due");
+                wordReview.setWordSection("memorization");
+              }}
+              onReview={() => {
+                go("words");
+                wordReview.setScheduledOnly(true);
+                wordReview.setWordSection("review");
+              }}
+              onGrammar={(note) => {
+                if (note?.tense) goToTenses();
+                else if (note?.modality) goToModality();
+                else goToGrammarTopic(note?.topicId ?? "");
+              }}
+              onWrong={(attempt) => {
+                const id = resolveExamTopicId(attempt.test);
+                goToExamTopic(
+                  (data.exams?.topics ?? DEFAULT_EXAM_TOPICS).some(
+                    (topic) => topic.id === id,
+                  )
+                    ? id
+                    : "",
+                );
+                setExamTab("wrong");
+              }}
+              onStories={() => go("stories")}
+              onStory={(row) => {
+                go("stories");
+                openChapter(row);
+              }}
+              onImport={() => {
+                go("stories");
+                void importStory();
+              }}
+            />
+          )}
           {page === "stories" && !story && (
             <StoriesScreen
               noteFilters={noteFilters}
@@ -419,6 +502,13 @@ export function NotebookApp() {
           )}
           {page === "stories" && story && (
             <ReaderScreen
+              onSelectWordPhrase={() => {
+                setPhraseToWord(true);
+                setPhraseMode(true);
+                setPhraseStart(null);
+                setSentenceMode(false);
+              }}
+              setPhraseToWord={setPhraseToWord}
               readerSettings={readerSettings}
               data={data}
               story={story}
@@ -461,6 +551,7 @@ export function NotebookApp() {
           {page === "grammar" && (
             <GrammarScreen
               data={data}
+              persist={persist}
               desktop={desktop}
               grammarSection={grammarSection}
               topicId={grammarTopicId}
@@ -479,6 +570,9 @@ export function NotebookApp() {
           )}
           {page === "exams" && (
             <ExamDesk
+              notebook={data}
+              persist={persist}
+              initialTab={examTab}
               data={data.exams}
               topicId={examTopicId}
               onSelectTopic={setExamTopicId}

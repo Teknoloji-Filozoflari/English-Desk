@@ -14,6 +14,8 @@ import { WORD_TYPES, isVerbType, wordTypeKey } from "../../word-types";
 import { styles } from "../styles";
 import { makeId as id, type Editor, type Persist } from "../types";
 import { Button } from "./ui";
+import { WordContextsPanel } from "./WordContextsPanel";
+import { wordContexts } from "../../word-context";
 type Props = {
   selectedWord: Word | undefined;
   data: Notebook;
@@ -80,6 +82,22 @@ export function WordDetailsModal({
               {!!selectedWord.type && (
                 <Text style={styles.meta}>{selectedWord.type}</Text>
               )}
+              {!!selectedWord.tags?.length && (
+                <Text style={styles.meta}>
+                  Etiketler: {selectedWord.tags.join(", ")}
+                </Text>
+              )}
+              <WordContextsPanel
+                key={selectedWord.id}
+                word={selectedWord}
+                data={data}
+                disabled={busy || !!storageError}
+                persist={persist}
+                onOpenStory={(id) => {
+                  setSelectedWordId(null);
+                  onOpenStory(id);
+                }}
+              />
               {isVerbType(selectedWord.type) && selectedWord.verbForms && (
                 <View style={styles.detailSection}>
                   <Text style={styles.label}>
@@ -127,18 +145,26 @@ export function WordDetailsModal({
                   </Text>
                 </View>
               )}
-              {!!selectedWord.example && (
-                <View style={styles.quote}>
-                  <Text selectable style={styles.quoteText}>
-                    {selectedWord.example}
-                  </Text>
-                  {!!selectedWord.translation && (
-                    <Text selectable style={[styles.muted, { marginTop: 10 }]}>
-                      {selectedWord.translation}
+              {!!selectedWord.example &&
+                !wordContexts(selectedWord, data.stories).some(
+                  (context) =>
+                    context.sentence === selectedWord.example &&
+                    context.translation === selectedWord.translation,
+                ) && (
+                  <View style={styles.quote}>
+                    <Text selectable style={styles.quoteText}>
+                      {selectedWord.example}
                     </Text>
-                  )}
-                </View>
-              )}
+                    {!!selectedWord.translation && (
+                      <Text
+                        selectable
+                        style={[styles.muted, { marginTop: 10 }]}
+                      >
+                        {selectedWord.translation}
+                      </Text>
+                    )}
+                  </View>
+                )}
               {!!selectedWord.examples?.length && (
                 <View style={styles.detailSection}>
                   <Text style={styles.label}>PDF örnekleri</Text>

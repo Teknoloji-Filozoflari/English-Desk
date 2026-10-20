@@ -9,6 +9,13 @@ import {
 } from "./model.ts";
 import { wordTypeKey } from "./word-types.ts";
 import { normalizeWord } from "./word-enrichment.ts";
+import { wordContexts } from "./word-context.ts";
+import {
+  emptyLearning,
+  validateLearning,
+  grammarCards,
+  type LearningCard,
+} from "./learning.ts";
 
 export const BACKUP_SECTIONS = [
   "stories",
@@ -130,7 +137,11 @@ export function makeBackup(
     result.storyNotes = checked.storyNotes;
     result.audioTimings = checked.audioTimings;
   }
-  if (sections.includes("words")) result.words = checked.words;
+  if (sections.includes("words")) {
+    result.words = checked.words;
+    if (checked.studyPreferences !== undefined)
+      result.studyPreferences = checked.studyPreferences;
+  }
   if (sections.includes("grammar")) {
     result.grammar = checked.grammar;
     if (checked.hiddenGrammarTopics !== undefined)
@@ -140,8 +151,29 @@ export function makeBackup(
   }
   if (sections.includes("exams"))
     result.exams = checked.exams ?? { tests: [], attempts: [] };
+  if (
+    checked.learning !== undefined &&
+    (sections.includes("grammar") || sections.includes("exams"))
+  ) {
+    result.learning = {
+      grammarHistory: sections.includes("grammar")
+        ? checked.learning.grammarHistory
+        : [],
+      mistakeHistory: sections.includes("exams")
+        ? checked.learning.mistakeHistory
+        : [],
+      weekly:
+        sections.includes("grammar") && sections.includes("exams")
+          ? checked.learning.weekly
+          : [],
+    };
+  }
   const linked = new Set(
-    result.words.flatMap((w) => [w.storyId, ...(w.storyIds ?? [])]),
+    result.words.flatMap((w) => [
+      w.storyId,
+      ...(w.storyIds ?? []),
+      ...(w.contexts ?? []).map((context) => context.storyId),
+    ]),
   );
   return {
     format: "english-desk-backup",
@@ -197,6 +229,7 @@ export function parseBackup(
     if (key === "exams") raw.exams = { tests: [], attempts: [] };
     else raw[key] = [];
   }
+  if (!sections.includes("words")) delete raw.studyPreferences;
   if (!sections.includes("grammar")) {
     delete raw.grammarTopics;
     delete raw.hiddenGrammarTopics;
@@ -235,7 +268,17 @@ export function parseBackup(
           )))
     )
       throw Error("Kelimenin hikâye bağlantısı geçersiz.");
-    for (const id of [word.storyId, ...(word.storyIds ?? [])].filter(Boolean)) {
+    for (const id of [
+      word.storyId,
+      ...(word.storyIds ?? []),
+      ...(word.contexts
+        ? (Array.isArray(word.contexts) ? word.contexts : []).map(
+            (context) => context?.storyId,
+          )
+        : []),
+    ].filter(Boolean)) {
+      if (typeof id !== "string")
+        throw Error("Kelime bağlamının hikâye bağlantısı geçersiz.");
       if (!known.has(id) && !referenceMap.has(id))
         referenceMap.set(id, { id, title: "", level: "" });
     }
@@ -327,6 +370,11 @@ export function planRestore(
     throw Error("Geri yükleme seçimi geçersiz.");
   const incoming = bundle.data,
     replace = options.mode === "replace";
+  const grammarMapping = new Map<string, string>();
+  const attemptMapping = new Map<
+    string,
+    NonNullable<Notebook["exams"]>["attempts"][number]
+  >();
   const next = {
     ...current,
     storyNotes: [...(current.storyNotes ?? [])],
@@ -344,6 +392,12 @@ export function planRestore(
   };
   const warnings: string[] = [],
     storyMapping = new Map<string, string>();
+  if (
+    selected.includes("words") &&
+    incoming.studyPreferences &&
+    (replace || !current.studyPreferences)
+  )
+    next.studyPreferences = incoming.studyPreferences;
   const sourceStoryMap = new Map(incoming.stories.map((s) => [s.id, s]));
   const references = new Map(
     [...bundle.storyReferences, ...incoming.stories].map((s) => [s.id, s]),
@@ -459,6 +513,18 @@ export function planRestore(
     return {
       ...word,
       storyId,
+      ...((word.contexts !== undefined || lost) &&
+      wordContexts(word, importing ? incoming.stories : current.stories).length
+        ? {
+            contexts: wordContexts(
+              word,
+              importing ? incoming.stories : current.stories,
+            ).map((context) => ({
+              ...context,
+              storyId: context.storyId ? resolve(context.storyId) : "",
+            })),
+          }
+        : {}),
       ...(word.storyIds ? { storyIds: [...new Set(storyIds)] } : {}),
       ...(lost && word.level === undefined && sourceLevel
         ? { level: sourceLevel }
@@ -505,6 +571,17 @@ export function planRestore(
       (g) => grammarKey(g) + "|" + (g.topicId ?? ""),
     );
     next.grammar = result.rows;
+    const targets = new Map(
+      result.rows.map((g) => [grammarKey(g) + "|" + (g.topicId ?? ""), g]),
+    );
+    for (const g of incoming.grammar) {
+      const target = targets.get(
+        grammarKey(g) +
+          "|" +
+          (g.topicId ? (topics.ids.get(g.topicId) ?? "") : ""),
+      );
+      if (target) grammarMapping.set(g.id, target.id);
+    }
     summary.added.grammar = result.added;
     summary.skipped.grammar = result.skipped;
     if (replace) summary.removed.grammar = current.grammar.length;
@@ -526,21 +603,31 @@ export function planRestore(
       source.tests.map(remapTest),
       testKey,
     );
+    const attemptKey = (a: (typeof source.attempts)[number]) =>
+      JSON.stringify([
+        a.created,
+        testKey(a.test),
+        a.mode,
+        a.answers,
+        a.finished,
+        a.elapsed,
+        a.position,
+        a.flags,
+      ]);
+    const incomingAttempts = source.attempts.map((a) => ({
+      ...a,
+      test: remapTest(a.test),
+    }));
     const attempts = mergeRows(
       replace ? [] : next.exams.attempts,
-      source.attempts.map((a) => ({ ...a, test: remapTest(a.test) })),
-      (a) =>
-        JSON.stringify([
-          a.created,
-          testKey(a.test),
-          a.mode,
-          a.answers,
-          a.finished,
-          a.elapsed,
-          a.position,
-          a.flags,
-        ]),
+      incomingAttempts,
+      attemptKey,
     );
+    const targets = new Map(attempts.rows.map((a) => [attemptKey(a), a]));
+    for (const a of incomingAttempts) {
+      const target = targets.get(attemptKey(a));
+      if (target) attemptMapping.set(a.id, target);
+    }
     next.exams = {
       tests: tests.rows,
       attempts: attempts.rows,
@@ -552,6 +639,91 @@ export function planRestore(
     summary.skipped.exams = tests.skipped;
     summary.attempts = attempts.added;
     if (replace) summary.removed.exams = current.exams?.tests.length ?? 0;
+  }
+  if (
+    (current.learning !== undefined || incoming.learning !== undefined) &&
+    (selected.includes("grammar") || selected.includes("exams"))
+  ) {
+    const before = current.learning ?? emptyLearning(),
+      source = incoming.learning ?? emptyLearning();
+    const targetCards = grammarCards(next);
+    const contentKey = (c: LearningCard) =>
+      JSON.stringify([
+        c.mode,
+        c.prompt,
+        c.passage,
+        c.options,
+        c.answer,
+        c.explanation,
+      ]);
+    const identityPart = (c: LearningCard) => {
+      try {
+        const parts = JSON.parse(c.identity);
+        return Array.isArray(parts) ? parts[1] : undefined;
+      } catch {
+        return undefined;
+      }
+    };
+    const relink = (card: LearningCard): LearningCard => {
+      if (card.kind === "grammar") {
+        const targetId = grammarMapping.get(card.sourceId);
+        const candidates = targetId
+          ? targetCards.filter(
+              (c) =>
+                c.sourceId === targetId && contentKey(c) === contentKey(card),
+            )
+          : [];
+        const target =
+          candidates.find((c) => identityPart(c) === identityPart(card)) ??
+          (candidates.length === 1 ? candidates[0] : undefined);
+        return target
+          ? { ...card, sourceId: target.sourceId, identity: target.identity }
+          : card;
+      }
+      const target = attemptMapping.get(card.sourceId);
+      const candidates =
+        target?.test.questions.filter(
+          (q) =>
+            q.prompt === card.prompt &&
+            q.passage === card.passage &&
+            q.answer === card.answer &&
+            JSON.stringify(q.options) === JSON.stringify(card.options),
+        ) ?? [];
+      const question =
+        candidates.find((q) => q.id === identityPart(card)) ??
+        (candidates.length === 1 ? candidates[0] : undefined);
+      return target && question
+        ? {
+            ...card,
+            sourceId: target.id,
+            identity: JSON.stringify([target.test.id, question.id]),
+          }
+        : card;
+    };
+    next.learning = validateLearning({
+      grammarHistory: selected.includes("grammar")
+        ? mergeRows(
+            replace ? [] : before.grammarHistory,
+            source.grammarHistory.map((e) => ({ ...e, card: relink(e.card) })),
+            (e) => JSON.stringify(e),
+          ).rows
+        : before.grammarHistory,
+      mistakeHistory: selected.includes("exams")
+        ? mergeRows(
+            replace ? [] : before.mistakeHistory,
+            source.mistakeHistory.map((e) => ({ ...e, card: relink(e.card) })),
+            (e) => JSON.stringify(e),
+          ).rows
+        : before.mistakeHistory,
+      weekly:
+        selected.includes("grammar") && selected.includes("exams")
+          ? mergeRows(
+              replace ? [] : before.weekly,
+              source.weekly.map((s) => ({ ...s, cards: s.cards.map(relink) })),
+              (s) => JSON.stringify(s),
+            ).rows
+          : before.weekly,
+    });
   }
   if (conflicts)
     warnings.push(

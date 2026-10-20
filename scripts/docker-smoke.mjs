@@ -82,6 +82,48 @@ try {
     assert.equal(response.status, 403);
   }
   const data = notebookFixture();
+  data.studyPreferences = { dailyNewWordGoal: 7, weeklyReviewGoal: 35 };
+  data.words = [
+    {
+      id: "docker-word",
+      word: "remember",
+      meaning: "hatırlamak",
+      type: "verb",
+      synonyms: "",
+      antonyms: "",
+      example: "I remember this word.",
+      translation: "Bu kelimeyi hatırlıyorum.",
+      storyId: "story-test",
+      level: "A1",
+      tags: ["Docker testi"],
+      memorization: {
+        addedOn: "2026-10-19",
+        learnedOn: "2026-10-19",
+        reviews: ["2026-10-20"],
+      },
+      answerHistory: [
+        {
+          id: "docker-review",
+          day: "2026-10-20",
+          outcome: "good",
+          activity: "review",
+          engine: "memory",
+        },
+      ],
+      contexts: [
+        {
+          id: "docker-context",
+          kind: "personal",
+          storyId: "",
+          storyTitle: "",
+          selection: "remember",
+          sentence: "I remember this word.",
+          meaning: "hatırlamak",
+          translation: "Bu kelimeyi hatırlıyorum.",
+        },
+      ],
+    },
+  ];
   data.stories[0].audioId = "docker-test-audio";
   data.audioTimings = { "story-test": [0, 2] };
   data.grammarTopics = [{ id: "topic", title: "Docker test konusu" }];
@@ -91,6 +133,16 @@ try {
       title: "Korunan not",
       body: "Container yenilendiğinde kalır.",
       topicId: "topic",
+      exercises: [
+        {
+          id: "docker-exercise",
+          mode: "choice",
+          prompt: "Doğru örneği seç.",
+          options: ["She reads.", "She read."],
+          answer: "She reads.",
+          explanation: "Üçüncü tekil şahıs.",
+        },
+      ],
     },
   ];
   const bytes = Buffer.from("synthetic Docker audio fixture");
@@ -196,6 +248,15 @@ try {
   await writeFile(output, Buffer.from(await download.arrayBuffer()));
   const checked = await readBackupArchive(output, join(directory, "stage"));
   assert.equal(checked.bundle.data.grammar[0].body, "İkinci kayıt");
+  assert.deepEqual(checked.bundle.data.words, current.data.words);
+  assert.deepEqual(
+    checked.bundle.data.studyPreferences,
+    current.data.studyPreferences,
+  );
+  assert.deepEqual(
+    checked.bundle.data.grammar[0].exercises,
+    data.grammar[0].exercises,
+  );
   assert.equal(checked.audioFiles.size, 1);
   console.log(
     "Docker checks passed: non-root startup, host/origin guards, ZIP/audio restore, volume persistence, automatic backups and ZIP export.",

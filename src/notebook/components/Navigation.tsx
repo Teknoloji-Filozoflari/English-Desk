@@ -1,9 +1,10 @@
 import type { Topic } from "../../topics";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { styles } from "../styles";
 import type { Page } from "../types";
 const navigation: { key: Page; title: string; number: string }[] = [
+  { key: "today", title: "Bugün", number: "00" },
   { key: "stories", title: "Hikâyeler", number: "01" },
   { key: "words", title: "Kelimelerim", number: "02" },
   { key: "grammar", title: "Gramer", number: "03" },
@@ -116,7 +117,22 @@ export function Navigation({
     );
   }
   return (
-    <View style={[styles.sidebar, !desktop && styles.mobileHeader]}>
+    <ScrollView
+      nativeID="study-navigation"
+      style={{
+        width: desktop ? 244 : "100%",
+        flexGrow: 0,
+        flexShrink: 0,
+        maxHeight: desktop ? "100%" : "50%",
+      }}
+      contentContainerStyle={[
+        styles.sidebar,
+        { width: "100%", flexGrow: 1 },
+        !desktop && styles.mobileHeader,
+      ]}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+    >
       <View style={styles.brandRow}>
         <View style={styles.logo}>
           <Text style={styles.logoText}>ed.</Text>
@@ -132,6 +148,7 @@ export function Navigation({
           <View key={tab.key} style={!desktop && styles.mobileNavGroup}>
             <Pressable
               accessibilityRole="tab"
+              aria-selected={page === tab.key}
               accessibilityState={{ selected: page === tab.key }}
               onPress={() =>
                 tab.key === "grammar" && page === "grammar"
@@ -155,7 +172,11 @@ export function Navigation({
                 {tab.number}
               </Text>
               <Text
-                style={[styles.navLabel, page === tab.key && styles.activeText]}
+                style={[
+                  styles.navLabel,
+                  !desktop && { fontSize: 12 },
+                  page === tab.key && styles.activeText,
+                ]}
               >
                 {tab.title}
               </Text>
@@ -207,11 +228,13 @@ export function Navigation({
         </Pressable>
         {desktop && (
           <Text style={styles.storageHint}>
-            Kayıtlar proje dosyasında tutulur.{"\n"}Ara sıra yedek almayı
-            unutma.
+            {Platform.OS === "web"
+              ? "Kayıtlar proje dosyasında tutulur."
+              : "Kayıtlar bu cihazda tutulur."}
+            {"\n"}Ara sıra yedek almayı unutma.
           </Text>
         )}
       </View>
-    </View>
+    </ScrollView>
   );
 }

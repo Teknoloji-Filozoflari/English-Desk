@@ -18,6 +18,8 @@ type Props = {
   selectedWord: Word | undefined;
   readingText: string;
   phraseMode: boolean;
+  onSelectWordPhrase: () => void;
+  setPhraseToWord: (value: boolean) => void;
   setPhraseMode: (value: boolean) => void;
   phraseStart: Token | null;
   setPhraseStart: (value: Token | null) => void;
@@ -41,6 +43,8 @@ export function ReaderScreen({
   selectedWord,
   readingText,
   phraseMode,
+  onSelectWordPhrase,
+  setPhraseToWord,
   setPhraseMode,
   phraseStart,
   setPhraseStart,
@@ -80,8 +84,9 @@ export function ReaderScreen({
         </View>
         <Text style={styles.readerTitle}>{story.title}</Text>
         <Text style={styles.hint}>
-          Tek kelimeye dokunarak kelime kartı aç. İfade veya cümle seçerek
-          yalnızca bu hikâyeye bağlı gramer ve kalıp notu ekle.
+          Tek kelimeye dokunarak kartını aç. Kelime/ifade kaydet ile birden
+          fazla kelimeyi birlikte öğren; İfade seç veya Cümleyi seç ile hikâyene
+          not ekle.
         </Text>
         <View style={styles.actions}>
           <Button
@@ -133,9 +138,13 @@ export function ReaderScreen({
           </View>
         )}
         <View style={styles.actions}>
+          <Button secondary onPress={onSelectWordPhrase}>
+            Kelime/ifade kaydet
+          </Button>
           <Button
             secondary
             onPress={() => {
+              setPhraseToWord(false);
               setPhraseMode(!phraseMode);
               setPhraseStart(null);
               setSentenceMode(false);
@@ -179,7 +188,7 @@ export function ReaderScreen({
             <Text accessibilityLiveRegion="polite" style={styles.tipText}>
               {phraseStart
                 ? `“${phraseStart.text}” seçildi. Şimdi ifadenin son kelimesine dokun.`
-                : "Not almak istediğin ifadenin ilk ve son kelimesine dokun. Tek kelimelik bağlaç için aynı kelimeye iki kez dokun."}
+                : "İfadenin ilk ve son kelimesine dokun. Tek kelime için aynı kelimeye iki kez dokun."}
             </Text>
           </View>
         )}

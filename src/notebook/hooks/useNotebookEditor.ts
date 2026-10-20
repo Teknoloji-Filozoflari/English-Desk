@@ -88,8 +88,8 @@ export function useNotebookEditor(
               verbRegularity: forms.regularity,
             }
           : {}),
-        ...(kind === "storyNotes" && row
-          ? { tags: ((row as StoryNote).tags ?? []).join(", ") }
+        ...((kind === "storyNotes" || kind === "words") && row
+          ? { tags: ((row as StoryNote | Word).tags ?? []).join(", ") }
           : {}),
         ...preset,
       } as Record<string, string>,

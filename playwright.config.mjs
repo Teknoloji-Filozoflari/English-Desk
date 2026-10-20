@@ -9,6 +9,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
+    channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     baseURL: "http://127.0.0.1:8082",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

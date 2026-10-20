@@ -55,6 +55,7 @@ const card = () => ({
 test.beforeEach(async ({ page, request }) => {
   await seed(request, notebookFixture());
   await page.goto("/");
+  await page.getByRole("tab", { name: /01.*Hikâyeler/ }).click();
   await expect(
     page.getByRole("button", { name: "A quiet morning", exact: true }),
   ).toBeVisible();

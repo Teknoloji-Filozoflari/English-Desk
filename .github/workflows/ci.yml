@@ -38,6 +38,12 @@ jobs:
       - name: Build web application
         run: npm run build:web
 
+      - name: Check Android and iOS JavaScript bundles (not installable packages)
+        run: npm run check:native
+        env:
+          EXPO_OFFLINE: "1"
+          EXPO_NO_TELEMETRY: "1"
+
       - name: Install Chromium for browser tests
         run: npx playwright install --with-deps chromium
 

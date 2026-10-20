@@ -34,7 +34,9 @@ Ardından `docker compose up -d --build --wait` çalıştır ve **http://127.0.0
 
 ## 2. Hazır Docker imajını GitHub’dan indir
 
-[Docker sürüm sayfasından](https://github.com/Teknoloji-Filozoflari/English-Desk/releases/tag/docker-v0.1.0) `english-desk-linux-amd64.tar.gz` dosyasını indir. Bu hazır imaj Linux amd64 içindir; Windows/macOS x86_64 üzerinde Docker Desktop ile de çalışır. ARM cihazlarda yukarıdaki kaynak kodundan derleme yolunu kullan.
+[Docker sürümlerinden](https://github.com/Teknoloji-Filozoflari/English-Desk/releases) kurmak istediğin sürümün `english-desk-linux-amd64.tar.gz` ve `SHA256SUMS` dosyalarını indir. `0.2.0` öğrenme özelliklerini içeren yeni yayındır; eski `docker-v0.1.0` imajı bu geliştirmeleri içermez. Yeni arşiv container testleri başarılı olduğunda yayımlanır. Bu hazır imaj Linux amd64 içindir; Windows/macOS x86_64 üzerinde Docker Desktop ile de çalışır. ARM cihazlarda yukarıdaki kaynak kodundan derleme yolunu kullan.
+
+Linux'ta `sha256sum -c SHA256SUMS` ile indirilen arşivi doğrulayabilirsin. Windows PowerShell'de `Get-FileHash .\english-desk-linux-amd64.tar.gz -Algorithm SHA256` sonucunu `SHA256SUMS` içindeki değerle karşılaştır.
 
 İndirdiğin dosyayı Docker’a yükle:
 
@@ -60,11 +62,11 @@ Compose ve doğrudan `docker run` örnekleri farklı adlı veri volume’leri ku
 
 ## Veriler ve yedekleme
 
-| Volume / dizin | İçerik |
-| --- | --- |
-| `notebook-data` → `/app/data` | Defter, hikâye sesleri, otomatik yedekler ve önbellekler. |
-| `translation-runtime` → `/app/.runtime` | İsteğe bağlı çeviri modeli ve kurulum dosyaları. |
-| `translation-python` → `/app/.venv` | İsteğe bağlı çeviri ortamı. |
+| Volume / dizin                          | İçerik                                                    |
+| --------------------------------------- | --------------------------------------------------------- |
+| `notebook-data` → `/app/data`           | Defter, hikâye sesleri, otomatik yedekler ve önbellekler. |
+| `translation-runtime` → `/app/.runtime` | İsteğe bağlı çeviri modeli ve kurulum dosyaları.          |
+| `translation-python` → `/app/.venv`     | İsteğe bağlı çeviri ortamı.                               |
 
 Compose bu volume adlarına proje adını ekler. `docker compose down` container’ı durdurup kaldırır; verileri korur. **`docker compose down -v` veri volume’lerini de siler**, dolayısıyla normal durdurma veya güncellemede kullanma.
 
@@ -86,7 +88,7 @@ docker compose exec english-desk node --use-system-ca scripts/setup-translation.
 docker exec -it english-desk node --use-system-ca scripts/setup-translation.mjs
 ```
 
-Kurulum tamamlanınca uygulamada **Kelimelerim → Eksikleri tamamla** seçeneğini kullanabilirsin. ARM cihazlarda otomatik çeviri kurucusu desteklenmez; temel çalışma alanları kullanılabilir.
+Kurulum tamamlanınca uygulamada **Kelimelerim → Eksik bilgileri tamamla** seçeneğini kullanabilirsin. ARM cihazlarda otomatik çeviri kurucusu desteklenmez; temel çalışma alanları kullanılabilir.
 
 ## Durdurma ve güncelleme
 
@@ -97,7 +99,7 @@ docker compose down
 # Yeniden başlat:
 docker compose up -d --wait
 # Kaynak kodunu ve imajı güncelle:
-git pull
+git pull --ff-only
 docker compose up -d --build --wait
 ```
 
@@ -137,4 +139,6 @@ npm run test:docker -- --image english-desk:ci
 
 Docker testi ayrı bir Compose proje adı, 18081 portu ve geçici volume’ler kullanır. Başlangıç, root olmadan çalışma, Host/Origin kontrolleri, ZIP ve ses geri yükleme, container yeniden oluşturulunca verilerin korunması, otomatik yedek ve ZIP indirme doğrulanır. Test sonunda yalnızca bu test projesinin volume’leri temizlenir.
 
-GitHub’daki **Docker** workflow’u aynı kontrolleri otomatik çalıştırır. **Run workflow → publish_release** seçeneği, başarılı testten sonra doğrulanmış amd64 imajını GitHub Releases’e yükler. Çalışan bir Docker servisi olmadan container testleri çalıştırılamaz.
+GitHub’daki **Docker** workflow'u aynı kontrolleri otomatik çalıştırır. `main` güncellemesinde testler başarılıysa ve uygulama sürümüne ait yayın henüz yoksa `docker-v<SÜRÜM>` adıyla amd64 arşivi ve `SHA256SUMS` dosyası yayımlanır. **Run workflow → publish_release** aynı işlemi `main` dalında elle başlatabilir. Yayımlanmış sürümün imajı üzerine yazılmaz; yeni yayın için `package.json`, `package-lock.json` ve `app.json` sürümlerini birlikte artır.
+
+İmajın OCI etiketlerinde uygulama sürümü, kaynak commit ve lisans bulunur. Container testi yeni kelime bağlamlarını, ezber/cevap geçmişini, günlük/haftalık hedefleri ve gramer alıştırmalarını da kalıcı volume ve ZIP gidiş-dönüşünde doğrular. Çalışan bir Docker servisi olmadan container testleri çalıştırılamaz.

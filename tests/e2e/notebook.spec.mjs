@@ -51,6 +51,7 @@ test.beforeEach(async ({ page, request }) => {
     }),
   );
   await page.goto("/");
+  await page.getByRole("tab", { name: /01.*Hikâyeler/ }).click();
   await expect(
     page.getByRole("button", { name: "A quiet morning", exact: true }),
   ).toBeVisible();
@@ -150,6 +151,7 @@ test("yedek indirilebilir, onayla geri yüklenir ve yenilemede korunur", async (
     page.getByRole("button", { name: "Restored story", exact: true }),
   ).toBeVisible();
   await page.reload();
+  await page.getByRole("tab", { name: /01.*Hikâyeler/ }).click();
   await expect(
     page.getByRole("button", { name: "Restored story", exact: true }),
   ).toBeVisible();

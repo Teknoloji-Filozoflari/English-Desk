@@ -73,6 +73,7 @@ export function useNotebook(
   function persist(update: (current: Notebook) => Notebook, recovery = false) {
     return commit(async (current) => {
       const next = update(current);
+      if (next === current) return current;
       await saveNotebook(next);
       return next;
     }, recovery);

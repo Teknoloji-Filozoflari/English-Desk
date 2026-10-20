@@ -332,6 +332,19 @@ export function EditorModal({
                   Boş bırakırsan ek kart oluşmaz.
                 </Text>
                 {field("example", "İlk anlamın örnek cümlesi", true)}
+                {field("tags", "Kelime etiketleri (virgülle ayır)")}
+                {!!editor.values.sourceSentence && (
+                  <View style={styles.quote}>
+                    <Text style={styles.label}>Kaydedilecek özgün cümle</Text>
+                    <Text selectable style={styles.quoteText}>
+                      {editor.values.sourceSentence}
+                    </Text>
+                    {field(
+                      "sourceMeaning",
+                      "Bu bağlamdaki anlam (isteğe bağlı)",
+                    )}
+                  </View>
+                )}
                 {field("translation", "Cümlenin Türkçe çevirisi", true)}
                 <Text style={styles.label}>Diğer anlamlar</Text>
                 {extraSenses.map((sense, index) => (

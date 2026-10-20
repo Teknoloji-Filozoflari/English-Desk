@@ -1,5 +1,5 @@
-import { Notebook, validateNotebook } from "./model";
-import { initialNotebook } from "./sample";
+import { validateNotebook, type Notebook } from "./model.ts";
+import { initialNotebook } from "./sample.ts";
 let revision: string | null = null;
 async function request(method: string, body?: unknown) {
   let response: Response;

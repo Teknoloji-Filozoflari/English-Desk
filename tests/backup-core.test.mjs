@@ -30,6 +30,7 @@ const word = (id = "w") => ({
   sources: "Source",
   senses: [{ meaning: "sakin", definition: "", example: "", translation: "" }],
   review: { due: 1000000000, interval: 2, repetitions: 3 },
+  memorization: { addedOn: "2026-10-01", learnedOn: "2026-10-02", reviews: ["2026-10-03"] },
 });
 const fixture = () => ({
   ...emptyNotebook(),

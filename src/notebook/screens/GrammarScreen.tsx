@@ -10,8 +10,12 @@ import type { TenseName } from "../../tenses";
 import { Blank, Button } from "../components/ui";
 import { styles } from "../styles";
 import { type Editor } from "../types";
+import type { Persist } from "../types";
+import { useState } from "react";
+import { GrammarPracticeScreen } from "./GrammarPracticeScreen";
 type Props = {
   data: Notebook;
+  persist: Persist;
   desktop: boolean;
   topicId: string;
   onSelectTopic: (id: string) => void;
@@ -39,6 +43,7 @@ type Props = {
 };
 export function GrammarScreen({
   data,
+  persist,
   desktop,
   topicId,
   onSelectTopic,
@@ -54,6 +59,7 @@ export function GrammarScreen({
   openEditor,
   deleteItem,
 }: Props) {
+  const [practice, setPractice] = useState(false);
   const notes = data.grammar.filter(
     (g) => !g.tense && !g.modality && (g.topicId ?? "") === topicId,
   );
@@ -104,6 +110,18 @@ export function GrammarScreen({
         wide={desktop}
       />
       <View style={styles.headingRow}>
+        <Button secondary onPress={() => setPractice(!practice)}>
+          {practice ? "Gramer notlarına dön" : "Gramer tekrarı çalış"}
+        </Button>
+      </View>
+      {practice && (
+        <GrammarPracticeScreen
+          data={data}
+          persist={persist}
+          disabled={disabled}
+        />
+      )}
+      <View style={practice ? { display: "none" } : styles.headingRow}>
         <View style={styles.headingCopy}>
           <Text accessibilityRole="header" style={styles.h2}>
             Gramer başlıkları
@@ -122,7 +140,7 @@ export function GrammarScreen({
           showSelector={false}
         />
       </View>
-      <View style={s.grid}>
+      <View style={[s.grid, practice && { display: "none" }]}>
         {sections.map((section, index) => (
           <Pressable
             key={section.id}
@@ -146,7 +164,7 @@ export function GrammarScreen({
           </Pressable>
         ))}
       </View>
-      {grammarSection === "notes" && (
+      {!practice && grammarSection === "notes" && (
         <View style={s.guide}>
           <View style={s.header}>
             <Text style={s.kicker}>GRAMER DEFTERİ · {notes.length} NOT</Text>
@@ -200,7 +218,7 @@ export function GrammarScreen({
           </View>
         </View>
       )}
-      {grammarSection !== "notes" && (
+      {!practice && grammarSection !== "notes" && (
         <TenseGuide
           section={grammarSection}
           disabled={disabled}

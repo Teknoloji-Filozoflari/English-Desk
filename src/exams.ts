@@ -31,6 +31,7 @@ export type ExamAttempt = {
   elapsed: number;
   finished: boolean;
   created: number;
+  completedAt?: number;
 };
 export type ExamData = {
   tests: ExamTest[];
@@ -125,6 +126,48 @@ export function score(attempt: ExamAttempt) {
     wrong: attempt.test.questions.length - right - blank,
     total: attempt.test.questions.length,
   };
+}
+export function isExampleExam(test: ExamTest): boolean {
+  return (
+    test.id === "example-yds-01" ||
+    test.id === "example-ielts-01" ||
+    test.source.startsWith("Uygulama için hazırlanmış örnek;")
+  );
+}
+// A later finished answer supersedes the same question's earlier answer.
+// Repeated sessions keep the original questions; history itself is never removed.
+export function pendingWrongQuestions(attempts: ExamAttempt[]) {
+  const latest = new Map<
+    string,
+    { attempt: ExamAttempt; question: ExamQuestion }
+  >();
+  for (const attempt of attempts
+    .filter((a) => a.finished)
+    .slice()
+    .sort((a, b) => a.created - b.created)) {
+    for (const question of attempt.test.questions) {
+      const key = JSON.stringify([
+        question.id,
+        question.prompt,
+        question.passage,
+        question.kind,
+        question.options,
+        question.answer,
+      ]);
+      latest.set(key, { attempt, question });
+    }
+  }
+  const groups = new Map<
+    string,
+    { attempt: ExamAttempt; questions: ExamQuestion[] }
+  >();
+  for (const { attempt, question } of latest.values()) {
+    if (correct(question, attempt.answers[question.id])) continue;
+    const group = groups.get(attempt.id) ?? { attempt, questions: [] };
+    group.questions.push(question);
+    groups.set(attempt.id, group);
+  }
+  return [...groups.values()].reverse();
 }
 const record = (value: unknown): Record<string, any> => {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -234,6 +277,10 @@ export function validateExams(value: unknown): ExamData {
       a.elapsed < 0 ||
       a.elapsed > 1e9 ||
       !Number.isFinite(a.created) ||
+      (a.completedAt !== undefined &&
+        (!a.finished ||
+          !Number.isFinite(a.completedAt) ||
+          a.completedAt < a.created)) ||
       !Array.isArray(a.flags) ||
       a.flags.some(
         (id: unknown) =>
@@ -257,6 +304,7 @@ export function validateExams(value: unknown): ExamData {
       elapsed: a.elapsed,
       finished: a.finished,
       created: a.created,
+      ...(a.completedAt !== undefined ? { completedAt: a.completedAt } : {}),
     } as ExamAttempt;
   });
   if (
